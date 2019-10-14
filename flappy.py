@@ -12,7 +12,7 @@ canv = Canvas(root, width=Width, height=Height + 3 * text_size, bg='white')
 canv.pack(fill=BOTH,expand=1)
 
 fps = 1 / 60
-g = 0.25
+bgnd = canv.create_rectangle(0, 0, Width, Height, fill='white', outline='white')
 
 canv.create_rectangle(
     0, Height, Width, Height + 3 * text_size, fill='#DDDDDD', outline='#DDDDDD'
@@ -25,14 +25,17 @@ class Bird:
         self.y = (Height - self.size) // 2
         self.v0 = -7
         self.v = self.v0
-        self.col = '#FF9999'
+        self.g = 0.25
+        self.col = '#e528b8'
         self.object = None
 bird = None
 
 class Obstacle:
     def __init__(self):
         self.size = int(bird.size * 3)
-        self.hole_size = bird.size * 6
+        self.hole_size = int(max(
+            bird.size * 6 - 0.3 * score[1], bird.size * 2.5
+        ) + 0.5)
         self.v = -4
         self.col = '#777777'
 
@@ -51,6 +54,7 @@ def new_game():
     global bird, obstacles, game_is_running
 
     game_is_running = True
+    canv.delete(bgnd)
 
     if bird is not None:
         canv.delete(bird.object)
@@ -66,10 +70,8 @@ def new_game():
 
 
 def move_bird():
-    global bird
-
-    bird.y += bird.v + g / 2
-    bird.v += g
+    bird.y += bird.v + bird.g / 2
+    bird.v += bird.g
 
     if bird.object is not None:
         canv.delete(bird.object)
@@ -78,7 +80,11 @@ def move_bird():
         bird.x, bird.y, bird.x + bird.size, bird.y + bird.size, fill=bird.col
     )
 
-    if bird.y > Height:
+    if bird.y + bird.size >= Height:
+        bird.y = Height - bird.size
+        bird.g = 0
+        bird.v = 0
+
         game_over()
 
     root.after(int(1000 * fps), move_bird)
@@ -93,9 +99,26 @@ def move_obstacles():
         for obj in obst.objects:
             canv.delete(obj)
 
-        if bird.x + bird.size > obst.x and bird.x < obst.x + obst.size:
-            if bird.y < obst.hole or bird.y + bird.size > obst.hole + obst.hole_size:
+        if bird.x + bird.size >= obst.x and bird.x <= obst.x + obst.size:
+            if (bird.y <= obst.hole
+            or bird.y + bird.size >= obst.hole + obst.hole_size):
+                obst.col = '#b30b02'
                 game_over()
+
+            if bird.y + bird.size >= obst.hole + obst.hole_size:
+                if obst.x <= bird.x + bird.size / 2 <= obst.x + obst.size:
+                    bird.g = 0
+                    bird.v = 0
+                    bird.y = obst.hole + obst.hole_size - bird.size
+
+                elif bird.x <= obst.x and bird.x + bird.size > obst.x:
+                    for obst2 in obstacles:
+                        obst2.x += 1
+
+                elif (bird.x <= obst.x + obst.size
+                and bird.x + bird.size > obst.x + obst.size):
+                    for obst2 in obstacles:
+                        obst2.x -= 1
 
         if obst.x >= -obst.size:
             rect1 = canv.create_rectangle(
@@ -113,9 +136,9 @@ def move_obstacles():
         else:
             deleting.add(obst)
 
-        if int(bird.x) == int(obst.x + obst.size):
+        if int(bird.x) == int(obst.x + obst.size) and game_is_running:
             show_score(plus=True)
-            obst.col = '#00DD55'
+            obst.col = '#1ad747'
 
 
     obstacles -= deleting
@@ -154,12 +177,20 @@ def show_score(new=False, plus=False):
     score = (n_obj, var)
 
 def game_over():
-    global game_is_running
+    global game_is_running, bgnd
+
+    if not game_is_running:
+        return 0
+
+    bgnd = canv.create_rectangle(
+        0, 0, Width, Height, fill='#FFA0A0', outline='#FFA0A0'
+    )
 
     for obst in obstacles:
         obst.v = 0
-        obst.col = '#7F0000'
+
     bird.v = max(bird.v, 0)
+    bird.col = '#670003'
     game_is_running = False
 
 new_game()
