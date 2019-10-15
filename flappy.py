@@ -1,6 +1,7 @@
 from tkinter import *
 import time
 import random
+import math
 
 root = Tk()
 
@@ -32,18 +33,29 @@ bird = None
 
 class Obstacle:
     def __init__(self):
+        level = score[1] + 1
+
         self.size = int(bird.size * 3)
         # self.hole_size = int(max(
         #     bird.size * 10 - 0.3 * score[1], bird.size * 2.5
         # ) + 0.5)
-        self.hole_size = int(bird.size * (3 + 8 / ((score[1] + 1) ** (1 / 3))))
+        self.hole_size = int(bird.size * (3 + 8 / (level ** (1 / 5))))
         self.v = -4
+
+        self.w = (
+            (min(level, 36) - 1) / 100
+        ) ** 4 * (-1) ** random.choice(range(2))
+
+        self.p = random.choice(range(
+            -Height, Height
+        )) / Height * math.pi
+
         self.col = '#777777'
 
         self.x = Width
-        self.hole = random.choice(
-            range(bird.size, Height - self.hole_size - 2 * bird.size)
-        )
+        # self.hole = random.choice(
+        #     range(bird.size, Height - self.hole_size - 2 * bird.size)
+        # )
 
         self.objects = set()
 
@@ -98,21 +110,25 @@ def move_obstacles():
     deleting = set()
     for obst in obstacles:
         obst.x += obst.v
+        obst.p += obst.w
+        hole = bird.size + (
+            Height - obst.hole_size - 2 * bird.size
+        ) * (1 + math.sin(obst.p)) / 2
 
         for obj in obst.objects:
             canv.delete(obj)
 
         if bird.x + bird.size >= obst.x and bird.x <= obst.x + obst.size:
-            if (bird.y <= obst.hole
-            or bird.y + bird.size >= obst.hole + obst.hole_size):
+            if (bird.y <= hole
+            or bird.y + bird.size >= hole + obst.hole_size):
                 obst.col = '#b30b02'
                 game_over()
 
-            if bird.y + bird.size >= obst.hole + obst.hole_size:
+            if bird.y + bird.size >= hole + obst.hole_size:
                 if obst.x <= bird.x + bird.size / 2 <= obst.x + obst.size:
-                    bird.g = 0
+                    # bird.g = 0
                     bird.v = 0
-                    bird.y = obst.hole + obst.hole_size - bird.size
+                    bird.y = hole + obst.hole_size - bird.size
 
                 elif bird.x <= obst.x and bird.x + bird.size > obst.x:
                     for obst2 in obstacles:
@@ -125,12 +141,12 @@ def move_obstacles():
 
         if obst.x >= -obst.size:
             rect1 = canv.create_rectangle(
-                obst.x, 0, obst.x + obst.size, obst.hole,
+                obst.x, 0, obst.x + obst.size, hole,
                 fill=obst.col, outline=obst.col
             )
 
             rect2 = canv.create_rectangle(
-                obst.x, obst.hole + obst.hole_size, obst.x + obst.size, Height,
+                obst.x, hole + obst.hole_size, obst.x + obst.size, Height,
                 fill=obst.col, outline=obst.col
             )
 
