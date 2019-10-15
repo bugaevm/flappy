@@ -33,14 +33,17 @@ bird = None
 class Obstacle:
     def __init__(self):
         self.size = int(bird.size * 3)
-        self.hole_size = int(max(
-            bird.size * 6 - 0.3 * score[1], bird.size * 2.5
-        ) + 0.5)
+        # self.hole_size = int(max(
+        #     bird.size * 10 - 0.3 * score[1], bird.size * 2.5
+        # ) + 0.5)
+        self.hole_size = int(bird.size * (3 + 8 / ((score[1] + 1) ** (1 / 3))))
         self.v = -4
         self.col = '#777777'
 
         self.x = Width
-        self.hole = random.choice(range(Height - self.hole_size))
+        self.hole = random.choice(
+            range(bird.size, Height - self.hole_size - 2 * bird.size)
+        )
 
         self.objects = set()
 
