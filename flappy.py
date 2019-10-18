@@ -31,6 +31,7 @@ class Bird:
         self.object = None
 bird = None
 
+hard_score = 28  # with this score the game become much harder
 class Obstacle:
     def __init__(self):
         level = score[1] + 1
@@ -50,7 +51,11 @@ class Obstacle:
             -Height, Height
         )) / Height * math.pi
 
-        self.col = '#777777'
+        self.col = None
+        self.cond = None
+        self.score = score[1]
+        self.disappearing = (self.score >= hard_score)
+
 
         self.x = Width
         # self.hole = random.choice(
@@ -64,6 +69,10 @@ class Obstacle:
 obstacle_period = 1.5
 obstacles = set()
 score = (None, 0)
+
+def grey(num):
+    s = ('0' + hex(num)[2:])[-2:]
+    return '#' + s * 3
 
 def new_game():
     global bird, obstacles, game_is_running
@@ -83,6 +92,12 @@ def new_game():
 
     show_score(new=True)
 
+testing_mode = False
+def enable_testing_mode(event):
+    global testing_mode
+
+    canv.create_rectangle(0, 0, Width, Height, fill='#ccffcc', outline='#ccffcc')
+    testing_mode = True
 
 def move_bird():
     bird.y += bird.v + bird.g / 2
@@ -92,12 +107,12 @@ def move_bird():
         canv.delete(bird.object)
 
     bird.object = canv.create_oval(
-        bird.x, bird.y, bird.x + bird.size, bird.y + bird.size, fill=bird.col
+        bird.x, bird.y, bird.x + bird.size, bird.y + bird.size,
+        fill=bird.col, outline = bird.col
     )
 
     if bird.y + bird.size >= Height:
         bird.y = Height - bird.size
-        bird.g = 0
         bird.v = 0
 
         game_over()
@@ -115,13 +130,15 @@ def move_obstacles():
             Height - obst.hole_size - 2 * bird.size
         ) * (1 + math.sin(obst.p)) / 2
 
+        obst.col = color(obst)
+
         for obj in obst.objects:
             canv.delete(obj)
 
         if bird.x + bird.size >= obst.x and bird.x <= obst.x + obst.size:
             if (bird.y <= hole
             or bird.y + bird.size >= hole + obst.hole_size):
-                obst.col = '#b30b02'
+                obst.cond = 'bumped'
                 game_over()
 
             if bird.y + bird.size >= hole + obst.hole_size:
@@ -157,13 +174,32 @@ def move_obstacles():
 
         if int(bird.x) == int(obst.x + obst.size) and game_is_running:
             show_score(plus=True)
-            obst.col = '#1ad747'
+            obst.cond = 'passed'
 
 
     obstacles -= deleting
 
 
     root.after(int(1000 * fps), move_obstacles)
+
+def color(obst):
+    if obst.cond == 'passed':
+        return '#1ad747'
+    if obst.cond == 'bumped':
+        return '#b30b02'
+
+    if game_is_running and obst.x <= Width / 2 and obst.disappearing:
+        lp = bird.x + bird.size * 2
+        rp = Width / 2 - bird.size * 3
+        cp = rp - (rp - lp) / ((obst.score - hard_score + 1) ** (1 / 5))
+
+        a = Width / 2 - obst.x
+        b = obst.x - cp
+
+        return grey(min(int((119 * b + 255 * a) / (a + b) + 0.5), 255))
+
+    return grey(119)
+
 
 def create_new_obstacle():
     if game_is_running:
@@ -198,6 +234,9 @@ def show_score(new=False, plus=False):
 def game_over():
     global game_is_running, bgnd
 
+    if testing_mode:
+        return 0
+
     if not game_is_running:
         return 0
 
@@ -216,9 +255,12 @@ new_game()
 create_new_obstacle()
 move_obstacles()
 move_bird()
+
 canv.bind('<Button-1>', click)
 canv.bind('<Button-3>', click)
 root.bind('<space>', click)
 root.bind('<Return>', click)
 root.bind('<Up>', click)
+root.bind('t', enable_testing_mode)
+
 root.mainloop()
