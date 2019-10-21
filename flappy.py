@@ -31,7 +31,7 @@ class Bird:
         self.object = None
 bird = None
 
-hard_score = 28  # with this score the game become much harder
+hard_score = 45  # with this score the game become much harder
 class Obstacle:
     def __init__(self):
         level = score[1] + 1
@@ -40,11 +40,11 @@ class Obstacle:
         # self.hole_size = int(max(
         #     bird.size * 10 - 0.3 * score[1], bird.size * 2.5
         # ) + 0.5)
-        self.hole_size = int(bird.size * (3 + 8 / (level ** (1 / 5))))
+        self.hole_size = int(bird.size * (3 + 15 / (level ** (1 / 5))))
         self.v = -4
 
         self.w = (
-            (min(level, 36) - 1) / 100
+            (min(level, 38) - 1) / 100
         ) ** 4 * (-1) ** random.choice(range(2))
 
         self.p = random.choice(range(
@@ -69,13 +69,14 @@ class Obstacle:
 obstacle_period = 1.5
 obstacles = set()
 score = (None, 0)
+highscore = (None, None)
 
 def grey(num):
     s = ('0' + hex(num)[2:])[-2:]
     return '#' + s * 3
 
 def new_game():
-    global bird, obstacles, game_is_running
+    global bird, obstacles, game_is_running, highscore
 
     game_is_running = True
     canv.delete(bgnd)
@@ -91,6 +92,16 @@ def new_game():
     obstacles = set()
 
     show_score(new=True)
+
+    try:
+        highscore_file = open('highscore')
+    except FileNotFoundError:
+        highscore = (None, None)
+    else:
+        highscore = (highscore[0], int(highscore_file.read()))
+        highscore_file.close()
+
+    show_highscore()
 
 testing_mode = False
 def enable_testing_mode(event):
@@ -155,6 +166,10 @@ def move_obstacles():
                 and bird.x + bird.size > obst.x + obst.size):
                     for obst2 in obstacles:
                         obst2.x -= 1
+
+            elif bird.y < hole and bird.v < 0:
+                bird.y = hole
+                bird.v *= -1
 
         if obst.x >= -obst.size:
             rect1 = canv.create_rectangle(
@@ -231,6 +246,22 @@ def show_score(new=False, plus=False):
 
     score = (n_obj, var)
 
+def show_highscore():
+    global highscore
+
+    obj, var = highscore
+
+    if var is None:
+        return 0
+
+    canv.delete(obj)
+
+    n_obj = canv.create_text(Width - text_size, Height + text_size,
+        text=f'HIGHSCORE: {var}', anchor=NE, font=f'Cantarel {text_size}'
+    )
+
+    highscore = (n_obj, var)
+
 def game_over():
     global game_is_running, bgnd
 
@@ -250,6 +281,11 @@ def game_over():
     bird.v = max(bird.v, 0)
     bird.col = '#670003'
     game_is_running = False
+
+    if highscore[1] is None or score[1] > highscore[1]:
+        highscore_file = open('highscore', 'w')
+        highscore_file.write(str(score[1]))
+        highscore_file.close()
 
 new_game()
 create_new_obstacle()
