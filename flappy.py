@@ -167,7 +167,7 @@ def move_obstacles():
                     for obst2 in obstacles:
                         obst2.x -= 1
 
-            elif bird.y < hole:
+            elif bird.y < hole and obst.x < bird.x:
                 bird.y = hole
                 bird.v = abs(bird.v)
 
