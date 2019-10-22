@@ -167,9 +167,9 @@ def move_obstacles():
                     for obst2 in obstacles:
                         obst2.x -= 1
 
-            elif bird.y < hole and bird.v < 0:
+            elif bird.y < hole:
                 bird.y = hole
-                bird.v *= -1
+                bird.v = abs(bird.v)
 
         if obst.x >= -obst.size:
             rect1 = canv.create_rectangle(
